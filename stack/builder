@@ -67,22 +67,27 @@ default_types=$(ruby -e "require 'yaml';puts (YAML.load_file('$build_root/.relea
 mkdir -p $build_root/.profile.d
 ruby -e "require 'yaml';(YAML.load_file('$build_root/.release')['config_vars'] || {}).each{|k,v| puts \"#{k}=#{v}\"}" > $build_root/.profile.d/config_vars
 
-cat > /exec <<EOF
+cat > /env <<EOF
 #!/bin/bash
 export HOME=/app
 for file in $app_root/.profile.d/*; do source \$file; done
 hash -r
 cd $app_root
+EOF
+chmod +x /env
+
+cat > /exec <<EOF
+#!/bin/bash
+source /env
+
 "\$@"
 EOF
 chmod +x /exec
 
 cat > /start <<EOF
 #!/bin/bash
-export HOME=/app
-for file in $app_root/.profile.d/*; do source \$file; done
-hash -r
-cd $app_root
+source /env
+
 if [[ -f Procfile ]]; then
     ruby -e "require 'yaml';puts YAML.load_file('Procfile')['\$1']" | bash
 else
